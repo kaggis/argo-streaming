@@ -40,7 +40,7 @@ import com.google.gson.JsonParser;
 //Flink Job : Stream metric data from ARGO messaging to Hbase
 //job required cli parameters
 //--ams-endpoint      : ARGO messaging api endoint to connect to msg.example.com
-//--ams-port          : ARGO messaging api port 
+//--ams-port          : ARGO messaging api port
 //--ams-token         : ARGO messaging api token
 //--ams-project       : ARGO messaging api project to connect to
 //--ams-sub           : ARGO messaging subscription to pull from
@@ -172,7 +172,7 @@ public class AmsStreamHbase {
 			}else {
 				config.set("hbase.master", master + ":60000");
 			}
-			
+
 			config.set("hbase.zookeeper.quorum", zkQuorum);
 			config.set("hbase.zookeeper.property.clientPort", (zkPort));
 			// Create the connection
@@ -188,17 +188,19 @@ public class AmsStreamHbase {
 		private String extractJson(String field, JsonObject root){
 			JsonElement el = root.get(field);
 			if (el!=null && !(el.isJsonNull())){
-			
+				if (el.isJsonObject()) {
+					return el.toString();
+				}
 				return el.getAsString();
-				
+
 			}
 			return "";
 		}
-		
-		
+
+
 		@Override
 		public void writeRecord(String record) throws IOException  {
-				
+
 				JsonParser jsonParser = new JsonParser();
 				// parse the json root object
 				JsonObject jRoot = jsonParser.parse(record).getAsJsonObject();
@@ -230,10 +232,10 @@ public class AmsStreamHbase {
 
 				// Insert row in hbase
 				ht.put(put);
-				
-			
-			
-		
+
+
+
+
 
 		}
 
