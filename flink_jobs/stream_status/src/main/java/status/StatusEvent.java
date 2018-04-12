@@ -16,8 +16,9 @@ public class StatusEvent{
 	@SerializedName("ts_processed") String tsProcessed;
 	@SerializedName("prev_status")String prevStatus;
 	@SerializedName("prev_ts")String prevTs;
+	String repeat;
 	
-	public StatusEvent (String report, String type, String dt, String group,String service,String hostname,String metric,String status,String monHost, String tsMonitored, String tsProcessed, String prevStatus, String prevTs){
+	public StatusEvent (String report, String type, String dt, String group,String service,String hostname,String metric,String status,String monHost, String tsMonitored, String tsProcessed, String prevStatus, String prevTs, String repeat){
 		this.report  = report;
 		this.type =type;
 		this.group = group;
@@ -31,5 +32,7 @@ public class StatusEvent{
 		this.tsProcessed = tsProcessed;
 		this.prevStatus = prevStatus;
 		this.prevTs = prevTs;
+		this.repeat = repeat;
+		
 	}
 }

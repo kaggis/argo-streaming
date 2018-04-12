@@ -195,6 +195,10 @@ Job Optional cli parameters for ams ingestion related
 `--ams.batch`         : num of messages to be retrieved per request to AMS service
 
 `--ams.interval`      : interval (in ms) between AMS service requests
+Other optional cli parameters
+`--daily`             : true/false - controls daily regeneration of events (not used in notifications)
+
+`--timeout`           : long(ms) - controls default timeout for event regeneration (used in notifications)
 
 `--ams.proxy`         : optional http proxy url to be used for AMS requests
 

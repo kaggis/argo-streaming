@@ -73,8 +73,14 @@ import sync.MetricProfileManager;
  * --hbase.namespace   : hbase namespace
  * --hbase.table       : hbase table name
  * --fs.ouput          : filesystem output path (local or hdfs) mostly for debugging
+<<<<<<< 2256084a28d324f5c17572798a5586ec025aeda8
  * --ams.proxy		   : http proxy url
  * --ams.verify        : optional turn on/off ssl verify
+=======
+ * --ams.proxy		   : http proxy url 
+ * --timeout           : time in ms - Optional timeout parameter (used in notifications)
+ * --daily             : true/false - Optional daily event generation parameter (not needed in notifications)
+>>>>>>> ARGO-1083 Streaming status job timeout and multiple-group fixes
  */
 public class AmsStreamStatus {
 	// setup logger
@@ -139,10 +145,10 @@ public class AmsStreamStatus {
 		final ParameterTool parameterTool = ParameterTool.fromArgs(args);
 
 		final StatusConfig conf = new StatusConfig(parameterTool);
-
-		StreamExecutionEnvironment see = setupEnvironment(conf);
 		
-
+		StreamExecutionEnvironment see = setupEnvironment(conf);
+		see.setParallelism(1);
+		
 		// Initialize Input Source : ARGO Messaging Source
 		String endpoint = parameterTool.getRequired("ams.endpoint");
 		String port = parameterTool.getRequired("ams.port");
@@ -159,18 +165,20 @@ public class AmsStreamStatus {
 			batch = parameterTool.getInt("ams.batch");
 			interval = parameterTool.getLong("ams.interval");
 		}
+		
+		
 
 		// Establish the metric data AMS stream
 		// Ingest sync avro encoded data from AMS endpoint
 		ArgoMessagingSource amsMetric = new ArgoMessagingSource(endpoint, port, token, project, subMetric, batch, interval);
 		ArgoMessagingSource amsSync = new ArgoMessagingSource(endpoint, port, token, project, subSync, batch, interval);
-		
+
 		if (parameterTool.has("ams.verify")) {
 			boolean verify = parameterTool.getBoolean("ams.verify");
 			amsMetric.setVerify(verify);
-			amsMetric.setVerify(verify);
+			amsSync.setVerify(verify);
 		}
-		
+
 		if (parameterTool.has("ams.proxy")) {
 			String proxyURL = parameterTool.get("ams.proxy");
 			amsMetric.setProxy(proxyURL);
@@ -322,21 +330,21 @@ public class AmsStreamStatus {
 			MetricData item;
 			item = avroReader.read(null, decoder);
 
-			System.out.println("metric data item received" + item.toString());
+			//System.out.println("metric data item received" + item.toString());
 
 			// generate events and get them
 			String service = item.getService();
 			String hostname = item.getHostname();
 
 			ArrayList<String> groups = egp.getGroup(hostname, service);
-			System.out.println(egp.getList());
+			//System.out.println(egp.getList());
 
 			for (String groupItem : groups) {
 				Tuple2<String, MetricData> curItem = new Tuple2<String, MetricData>();
 				curItem.f0 = groupItem;
 				curItem.f1 = item;
 				out.collect(curItem);
-				System.out.println("item enriched: " + curItem.toString());
+				//System.out.println("item enriched: " + curItem.toString());
 			}
 
 		}
@@ -400,6 +408,8 @@ public class AmsStreamStatus {
 		public StatusConfig config;
 
 		public int defStatus;
+		
+		
 
 		public StatusMap(StatusConfig config) {
 			LOG.info("Created new Status map");
@@ -417,7 +427,7 @@ public class AmsStreamStatus {
 		public void open(Configuration parameters) throws IOException, ParseException, URISyntaxException {
 
 			pID = Integer.toString(getRuntimeContext().getIndexOfThisSubtask());
-			LOG.info("initializing status manager:" + pID);
+			
 			SyncData sd = new SyncData();
 
 			String opsJSON = sd.readText(config.ops);
@@ -427,11 +437,13 @@ public class AmsStreamStatus {
 
 			// create a new status manager
 			sm = new StatusManager();
+			sm.setTimeout(config.timeout);
 			// load all the connector data
 			sm.loadAll(egpListFull, mpsList, apsJSON, opsJSON);
 
 			// Set the default status as integer
 			defStatus = sm.getOps().getIntStatus(config.defStatus);
+			LOG.info("Initialized status manager:" + pID + " (with timeout:" + sm.getTimeout() + ")");
 
 		}
 
@@ -458,8 +470,8 @@ public class AmsStreamStatus {
 			String tsMon = item.getTimestamp();
 			String monHost = item.getMonitoringHost();
 
-			// Has Date Changed?
-			if (sm.hasDayChanged(sm.getTsLatest(), tsMon)) {
+			// if daily generation is enable check if has day changed?
+			if (config.daily && sm.hasDayChanged(sm.getTsLatest(), tsMon)) {
 				ArrayList<String> eventsDaily = sm.dumpStatus(tsMon);
 				sm.setTsLatest(tsMon);
 				for (String event : eventsDaily) {
