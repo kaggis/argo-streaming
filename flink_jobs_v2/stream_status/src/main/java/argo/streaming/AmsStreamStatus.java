@@ -159,14 +159,9 @@ public class AmsStreamStatus {
     }
 
     public static boolean hasAmsPubArgs(ParameterTool paramTool) {
-        String amsPubArgs[] = {"ams.project.publish", "ams.token.publish", "ams.notification.topic"};
+        String amsPubArgs[] = {"ams.project.publish", "ams.token.publish", "ams.topic"};
         return hasArgs(amsPubArgs, paramTool);
     }
-        public static boolean hasAmsArgs(ParameterTool paramTool) {
-        String amsPubArgs[] = {"ams.project.publish", "ams.token.publish", "ams.alert.topic"};
-        return hasArgs(amsPubArgs, paramTool);
-    }
-
 
     /**
      * Main dataflow of flink job
@@ -274,17 +269,6 @@ public class AmsStreamStatus {
                     kafkaProps);
 
             events.addSink(kSink);
-        }else if(hasAmsArgs(parameterTool)){
-              String topic = parameterTool.get("ams.alert.topic");
-            String tokenpub = parameterTool.get("ams.token.publish");
-            String projectpub = parameterTool.get("ams.project.publish");
-
-            ArgoMessagingSink ams = new ArgoMessagingSink(endpoint, port, tokenpub, projectpub, topic, interval);
-            if (parameterTool.has("proxy")) {
-                String proxyURL = parameterTool.get("proxy");
-                ams.setProxy(proxyURL);
-            }
-            events.addSink(ams);
         }
 
         if (hasHbaseArgs(parameterTool)) {
@@ -313,7 +297,7 @@ public class AmsStreamStatus {
             //events.print();
         }
         if (hasAmsPubArgs(parameterTool)) {
-            String topic = parameterTool.get("ams.notification.topic");
+            String topic = parameterTool.get("ams.topic");
             String tokenpub = parameterTool.get("ams.token.publish");
             String projectpub = parameterTool.get("ams.project.publish");
 
